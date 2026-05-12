@@ -33,6 +33,21 @@ Privacy here is **load-bearing** — not a feature you add. Remove either layer 
 
 ---
 
+## Live Deployment
+
+```
+https://graybox-cloak-production.up.railway.app
+```
+
+Test the compliance viewing key endpoint:
+```bash
+curl -X POST https://graybox-cloak-production.up.railway.app/v1/compliance/viewing-key \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: g-p_demo_h6kj9d8s7g6f5d4"
+```
+
+---
+
 ## Live Demo — Mainnet TX
 
 A real private send executed on Solana mainnet via Cloak shielded pool:
