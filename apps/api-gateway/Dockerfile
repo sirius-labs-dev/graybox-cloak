@@ -4,4 +4,4 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 EXPOSE 3000
-CMD ["node", "--loader", "tsx/esm", "src/index.ts"]
+CMD ["node", "--import", "tsx/esm", "src/index.ts"]
