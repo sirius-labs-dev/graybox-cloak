@@ -1,7 +1,8 @@
 # GrayBox × Cloak — Complete Payment Privacy on Solana
 
-> GrayBox hides **who** receives. Cloak hides **how much** is transferred.
-> Together: identity and amount both hidden on-chain.
+> GrayBox hides **who** receives — ECDH stealth addresses ensure the recipient's real wallet never appears on-chain.
+> Cloak breaks the deposit-withdrawal linkage — Groth16 proofs make it cryptographically impossible to trace which deposit corresponds to which withdrawal.
+> Together: recipient identity and transaction traceability both eliminated.
 
 **Colosseum Frontier 2026 · Cloak Track Submission**
 
@@ -23,11 +24,13 @@ Existing solutions address one or the other. No solution on Solana closes both g
 | Layer | Technology | What it hides |
 |-------|-----------|--------------|
 | **GrayBox** | ECDH stealth addresses (Ed25519) | Recipient identity |
-| **Cloak SDK** | UTXO shielded pool (Groth16 ZK proofs) | Settlement amount |
+| **Cloak SDK** | UTXO shielded pool (Groth16 ZK proofs) | Deposit-withdrawal linkage |
 | **Combined** | GrayBox + Cloak | Identity + amount |
 
 A payment settled through this stack leaves only a ZK proof on-chain.  
-No recipient address. No amount. No on-chain link to the receiver's real wallet.
+No recipient address. No traceable link between deposit and withdrawal. No on-chain connection to the receiver's real wallet.
+
+**What Cloak actually provides:** Funds enter the shielded UTXO pool. A Groth16 proof is generated client-side, proving that inputs equal outputs without revealing which deposit corresponds to which withdrawal. The privacy comes from breaking this linkage — not from making amounts disappear entirely from the chain.
 
 Privacy here is **load-bearing** — not a feature you add. Remove either layer and the privacy guarantee breaks.
 
