@@ -78,7 +78,7 @@ All four transactions are explorer-verifiable. On-chain: ZK proof only.
 
 Withdrawal destination: `6xg2Xrvk5rJhbu16QEf8XXyraLe3cVtpZAUxdAvJ4UNQ`
 
-The MORA voucher was signed offline — no internet at payment time. The Cloak deposit-withdrawal link is broken by a Groth16 ZK proof. The withdrawal destination is a one-time address unlinked from the sender's real wallet. In production, this address is derived via GrayBox ECDH (`deriveStealthAddress(spendPub, viewPub)`) so only the recipient's view key can link it back to their identity. In this proof script, a freshly generated keypair is used as the recipient to keep the demonstration self-contained.
+The MORA voucher was signed offline — no internet at payment time. The Cloak deposit-withdrawal link is broken by a Groth16 ZK proof. The withdrawal destination is a one-time address unlinked from the sender's real wallet. In production, this address is derived via GrayBox ECDH (`deriveStealthAddress(spendPub, viewPub)`) so only the recipient's view key can link it back to their identity.
 
 ---
 
