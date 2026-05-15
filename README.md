@@ -99,23 +99,12 @@ curl -X POST https://graybox-cloak-production.up.railway.app/v1/receiving-addres
 ```
 
 **`POST /v1/private-release`**  
-Settles an approved deposit via Cloak's shielded pool instead of a transparent on-chain transfer. Call `/v1/receiving-address` first to create a deposit, then use the returned `deposit_id` here.
-
-```bash
-# Step 1: create deposit
-curl -X POST https://graybox-cloak-production.up.railway.app/v1/receiving-address \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: g-p_demo_h6kj9d8s7g6f5d4" \
-  -d '{"customer_id":"cust_001","amount_hint":"10000000","mint":"So11111111111111111111111111111111111111112","expire_seconds":3600,"refund_addr_hex":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}'
-
-# Step 2: release (use deposit_id from step 1)
-curl -X POST https://graybox-cloak-production.up.railway.app/v1/private-release \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: g-p_demo_h6kj9d8s7g6f5d4" \
-  -d '{"deposit_id":"<deposit_id from step 1>"}'
-```
+Settles an approved deposit via Cloak's shielded pool. Requires a deposit that has been confirmed on-chain and passed AML attestation (production flow). For testing the Cloak private settlement without on-chain infrastructure, use `POST /v1/mora-private-settle` below.
 
 ```json
+// Request
+{ "deposit_id": "dep_abc123" }
+
 // Response
 {
   "deposit_id": "dep_abc123",
