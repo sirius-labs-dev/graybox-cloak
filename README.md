@@ -25,14 +25,15 @@ Existing solutions address one or the other. No solution on Solana closes both g
 |-------|-----------|--------------|
 | **GrayBox** | ECDH stealth addresses (Ed25519) | Recipient identity |
 | **Cloak SDK** | UTXO shielded pool (Groth16 ZK proofs) | Deposit-withdrawal linkage |
-| **Combined** | GrayBox + Cloak | Identity + amount |
+| **MORA** | Offline payment vouchers (114-byte QR chains) | Internet requirement |
+| **Combined** | GrayBox + Cloak + MORA | Identity + linkage + connectivity |
 
 A payment settled through this stack leaves only a ZK proof on-chain.  
-No recipient address. No traceable link between deposit and withdrawal. No on-chain connection to the receiver's real wallet.
+No recipient address. No traceable link between deposit and withdrawal. No internet required at payment time.
 
 **What Cloak actually provides:** Funds enter the shielded UTXO pool. A Groth16 proof is generated client-side, proving that inputs equal outputs without revealing which deposit corresponds to which withdrawal. The privacy comes from breaking this linkage — not from making amounts disappear entirely from the chain.
 
-Privacy here is **load-bearing** — not a feature you add. Remove either layer and the privacy guarantee breaks.
+Privacy here is **load-bearing** — not a feature you add. Remove any layer and the privacy guarantee breaks.
 
 ---
 
@@ -68,7 +69,7 @@ The deposit transaction shows SOL entering the Cloak shielded pool. The withdraw
 
 The integration is in `apps/api-gateway/src/cloak.ts`.
 
-### New Endpoints
+### Endpoints
 
 **`POST /v1/private-release`**  
 Settles an approved deposit via Cloak's shielded pool instead of a transparent on-chain transfer.
@@ -89,7 +90,7 @@ Settles an approved deposit via Cloak's shielded pool instead of a transparent o
   "viewing_key_id": "c460312e4fbc2917:73f8be9b9894bfe3",
   "viewing_key_hex": "...",
   "compliance_url": "https://explorer.cloak.ag/compliance?vk=...",
-  "privacy_note": "Amount hidden on-chain via Cloak shielded pool (Groth16). Recipient identity hidden via GrayBox ECDH stealth address. Viewing key enables selective compliance disclosure."
+  "privacy_note": "Recipient identity hidden via GrayBox ECDH stealth address. Deposit-withdrawal link broken via Cloak Groth16 ZK proof."
 }
 ```
 
@@ -108,6 +109,43 @@ Generates institution's Cloak viewing key for audit/compliance use.
 }
 ```
 
+**`POST /v1/mora-private-settle`**  
+Routes a settled MORA offline voucher through Cloak's shielded pool to a GrayBox stealth address. Full MORA × Cloak × GrayBox stack in a single call.
+
+```bash
+curl -X POST https://graybox-cloak-production.up.railway.app/v1/mora-private-settle \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: g-p_demo_h6kj9d8s7g6f5d4" \
+  -d '{
+    "channel_id": "mora_ch_001",
+    "seq": 3,
+    "prev_hash": "a7f3c2e91b...",
+    "recipient_pub_hex": "bbbbbbbb...",
+    "amount_lamports": "10000000"
+  }'
+```
+
+```json
+// Response
+{
+  "voucher_channel_id": "mora_ch_001",
+  "voucher_seq": 3,
+  "amount_lamports": "10000000",
+  "stealth_pubkey_hex": "...",
+  "ephemeral_r_hex": "...",
+  "deposit_signature": "...",
+  "withdraw_signature": "...",
+  "deposit_explorer": "https://explorer.solana.com/tx/...",
+  "withdraw_explorer": "https://explorer.solana.com/tx/...",
+  "cloak_deposit_explorer": "https://explorer.cloak.ag/tx/...",
+  "cloak_withdraw_explorer": "https://explorer.cloak.ag/tx/...",
+  "viewing_key_hex": "...",
+  "compliance_url": "https://explorer.cloak.ag/compliance?vk=...",
+  "privacy_stack": ["MORA", "Cloak", "GrayBox"],
+  "privacy_note": "MORA: offline payment authorized without internet. Cloak: deposit-withdrawal link broken via Groth16 ZK proof. GrayBox: recipient identity hidden via ECDH stealth address."
+}
+```
+
 ### SDK Usage
 
 ```typescript
@@ -122,29 +160,98 @@ const keys = generateCloakKeys();
 const wallet = new SimpleWallet(keys.view);
 const prepared = await wallet.send(lamports, recipientSpendPubkey);
 // inputs/outputs: UTXO parameters for Cloak relay
-// amount never appears on-chain
 ```
+
+---
+
+## MORA × Cloak × GrayBox — Full Stack
+
+`apps/api-gateway/src/mora-relay.ts`
+
+This is the complete three-layer privacy stack working together.
+
+**What each layer does:**
+
+| Layer | Removes |
+|-------|---------|
+| MORA | Internet requirement at payment time |
+| Cloak | On-chain link between deposit and withdrawal |
+| GrayBox | Recipient identity at the withdrawal destination |
+
+**What the chain sees after a full-stack settlement:**
+
+```
+On-chain record: ZK proof only.
+- Who sent? Unknown.
+- Who received? Unknown.
+- How much? Unlinked.
+- Was internet needed? No.
+```
+
+**Payment flow:**
+
+```
+Alice (offline, no internet)
+    │
+    │  Signs 114-byte MORA voucher
+    │  Passes via QR / NFC
+    ▼
+Bob scans, goes online later
+    │
+    │  POST /v1/mora-private-settle
+    ▼
+Relay: MORA settle_envelope
+    │
+    ▼
+Cloak transact() → shielded UTXO pool
+    │  Groth16 proof generated client-side
+    │  Deposit-withdrawal link broken
+    ▼
+Cloak fullWithdraw() → GrayBox stealth address
+    │  ECDH-derived one-time address
+    │  Recipient's real wallet never on-chain
+    ▼
+On-chain: ZK proof only
+```
+
+**Why this matters:**
+
+Without MORA: Alice needs internet to authorize the payment.  
+Without Cloak: the deposit-to-stealth-address path is traceable.  
+Without GrayBox: the withdrawal destination reveals the recipient.  
+All three together: a merchant in Lagos receives a payment with no internet, no identity trail, and no traceable funding path.
 
 ---
 
 ## Architecture
 
 ```
-Payment flow:
+Payment flow (GrayBox + Cloak):
 
   Sender ──► GrayBox stealth address (one-time, unlinked to receiver)
                         │
                         ▼
-              Cloak shielded pool (amount hidden via Groth16 ZK proof)
+              Cloak shielded pool (Groth16 ZK proof)
                         │
                         ▼
               On-chain: only a ZK proof
-              Block explorer sees: nothing useful
+
+Full stack (MORA + Cloak + GrayBox):
+
+  Offline voucher (114-byte, QR)
+                        │
+                        ▼
+              Relay: Cloak transact() + fullWithdraw()
+                        │
+                        ▼
+              GrayBox stealth address
+                        │
+                        ▼
+              On-chain: only a ZK proof
 ```
 
 **GrayBox layer** (`src/stealth.ts`):  
 ECDH stealth address derivation — mirrors `stealth_core::derive_stealth_address_deterministic`.  
-Each payment generates a fresh one-time address. The view key scans incoming payments.  
 TypeScript implementation verified byte-exact against the Rust crate.
 
 **Cloak layer** (`src/cloak.ts`):  
@@ -152,24 +259,33 @@ TypeScript implementation verified byte-exact against the Rust crate.
 `SimpleWallet.send()` → prepares UTXO transfer with ZK proof parameters.  
 `buildComplianceRecord()` → viewing key identifier for selective audit disclosure.
 
+**MORA relay** (`src/mora-relay.ts`):  
+`moraPrivateSettle()` → chains MORA voucher → Cloak deposit → GrayBox stealth withdrawal.
+
 ---
 
 ## Setup
 
 ```bash
 # Clone and install
-git clone https://github.com/YOUR_HANDLE/graybox-cloak
+git clone https://github.com/sirius-labs-dev/graybox-cloak
 cd graybox-cloak/apps/api-gateway
 npm install
 
 # Run server (memory store, no database needed)
 npm run dev
-# → gpay-api-gateway listening on http://localhost:3000
+# → listening on http://localhost:3000
 
 # Test compliance viewing key
 curl -X POST http://localhost:3000/v1/compliance/viewing-key \
   -H "Content-Type: application/json" \
   -H "x-api-key: g-p_demo_h6kj9d8s7g6f5d4"
+
+# Test MORA private settle (demo mode)
+curl -X POST http://localhost:3000/v1/mora-private-settle \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: g-p_demo_h6kj9d8s7g6f5d4" \
+  -d '{"channel_id":"ch_001","seq":1,"prev_hash":"a7f3c2e91b4d5f8a9c0b1e2d3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a","recipient_pub_hex":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","amount_lamports":"10000000"}'
 
 # Run tests (8 passing)
 npm test
@@ -191,18 +307,22 @@ Tests:      8 passed
 
 ## Why Privacy Is Load-Bearing Here
 
-Removing GrayBox: Cloak hides the amount, but the recipient's wallet address remains visible. A block explorer links every settlement to the institution's real treasury address.
+Removing GrayBox: Cloak breaks the linkage, but the withdrawal destination (recipient's real wallet) is still visible on-chain.
 
-Removing Cloak: GrayBox hides the recipient, but the settlement amount is visible. Competitors and adversaries can monitor treasury flows in real time.
+Removing Cloak: GrayBox hides the recipient, but an observer can trace which deposit funded which withdrawal.
 
-Both layers together: the on-chain record is a ZK proof. No recipient. No amount. Compliance is handled off-chain via the viewing key.
+Removing MORA: Cloak and GrayBox hide identity and linkage, but the payment still requires internet at authorization time.
+
+All three together: the on-chain record is a ZK proof. No recipient. No linkage. No internet dependency.
 
 ---
 
 ## Roadmap
 
-- [ ] MORA integration: offline payment vouchers (114-byte QR chains) settle privately via Cloak — timing unlinkability added on top of identity and amount privacy
-- [ ] Mainnet deployment with funded Cloak wallet
+- [x] GrayBox + Cloak integration — live on Railway
+- [x] Real mainnet TX — explorer-verifiable
+- [x] MORA × Cloak × GrayBox relay — `POST /v1/mora-private-settle`
+- [ ] Funded relay wallet for live MORA settlements on mainnet
 - [ ] Third-party security audit (Adevar Labs)
 
 ---
