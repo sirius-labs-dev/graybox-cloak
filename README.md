@@ -61,7 +61,7 @@ A real private send executed on Solana mainnet via Cloak shielded pool:
 | Deposit into Cloak pool | `3bpjSixv...` | [Solana](https://explorer.solana.com/tx/3bpjSixvGPCRRKwNx83FeNK1UfwxUQDDHaKPnUV8u7eQ5NSCXEx9MApPAzALdnCciKaRjwEJux2igu79MFFoa2op) · [Cloak](https://explorer.cloak.ag/tx/3bpjSixvGPCRRKwNx83FeNK1UfwxUQDDHaKPnUV8u7eQ5NSCXEx9MApPAzALdnCciKaRjwEJux2igu79MFFoa2op) |
 | Private withdrawal | `4mLPo2J8...` | [Solana](https://explorer.solana.com/tx/4mLPo2J8i9xxiQQbUmrkHJNEpBUZGoAaNug8wT7VXWKeX5zDBx37LSp9cZU4tpCZroHsn1VGvVnM2PyM4kRnMUqm) · [Cloak](https://explorer.cloak.ag/tx/4mLPo2J8i9xxiQQbUmrkHJNEpBUZGoAaNug8wT7VXWKeX5zDBx37LSp9cZU4tpCZroHsn1VGvVnM2PyM4kRnMUqm) |
 
-The deposit transaction shows SOL entering the Cloak shielded pool. The withdrawal transaction shows SOL exiting — but the on-chain link between sender, recipient, and amount is broken by the Groth16 ZK proof.
+The deposit transaction shows SOL entering the Cloak shielded pool. The withdrawal transaction shows SOL exiting — but the on-chain link between which deposit funded which withdrawal is broken by the Groth16 ZK proof.
 
 ---
 
