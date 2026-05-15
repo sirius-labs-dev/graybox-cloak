@@ -345,6 +345,23 @@ All three together: the on-chain record is a ZK proof. No recipient. No linkage.
 
 ---
 
+## Live Demo — Full Stack TX (MORA × Cloak × GrayBox)
+
+All four transactions are explorer-verifiable. On-chain: ZK proof only.
+
+| Step | Network | TX | Explorer |
+|------|---------|-----|---------|
+| MORA create_escrow | devnet | `m9dyhe4...` | [Solana](https://explorer.solana.com/tx/m9dyhe43FyoFTQvKw8qpm86uQHr1NjWr9cDJ1AnLyguHZGFvBxkaJWhtPBPFBMcbKgQbHEFD5Y2Y3Mcv7ZXou8P?cluster=devnet) |
+| MORA settle (offline voucher) | devnet | `33vqww1...` | [Solana](https://explorer.solana.com/tx/33vqww1VH3WK2XvUxyTAZwkGscZiEs9ScQD3GjusVmzttZJ2aEvxQPeZwikiikmGA6VMKaRfURHoYmkhV64joCs?cluster=devnet) |
+| Cloak deposit (shielded pool) | mainnet | `5prMxzU...` | [Solana](https://explorer.solana.com/tx/5prMxzUjP1CUvBQi9WM7wjGQBKbm19nnn84W3rFyKKKdPGgqaYzWiBTATjZGDCJUymLTsjikBmsBTj8UZHFrrUtq) · [Cloak](https://explorer.cloak.ag/tx/5prMxzUjP1CUvBQi9WM7wjGQBKbm19nnn84W3rFyKKKdPGgqaYzWiBTATjZGDCJUymLTsjikBmsBTj8UZHFrrUtq) |
+| Cloak withdraw → GrayBox stealth | mainnet | `kdPtCCu...` | [Solana](https://explorer.solana.com/tx/kdPtCCumSzEmkNkYi6Jqj9QrkERRjZbm64HRMpCYQsDPNgKey9iMc3wSLTeUdWJhQQV7wbWDxSpoeyh9KQA7h5d) · [Cloak](https://explorer.cloak.ag/tx/kdPtCCumSzEmkNkYi6Jqj9QrkERRjZbm64HRMpCYQsDPNgKey9iMc3wSLTeUdWJhQQV7wbWDxSpoeyh9KQA7h5d) |
+
+GrayBox stealth address (withdrawal destination): `6xg2Xrvk5rJhbu16QEf8XXyraLe3cVtpZAUxdAvJ4UNQ`
+
+The MORA voucher was signed offline — no internet at payment time. The Cloak deposit-withdrawal link is broken by a Groth16 ZK proof. The withdrawal destination is a one-time GrayBox stealth address unlinked from the sender's real wallet.
+
+---
+
 ## Roadmap
 
 - [x] GrayBox + Cloak integration — live on Railway
