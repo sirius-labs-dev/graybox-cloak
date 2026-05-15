@@ -1,8 +1,10 @@
 import { Hono } from "hono";
 import { z } from "zod";
+import { Connection, Keypair } from "@solana/web3.js";
 import { apiKeyAuth } from "./auth.js";
 import { deriveStealthAddress } from "./stealth.js";
 import { generateInstitutionCloakKeys, preparePrivateSettlement, buildComplianceRecord } from "./cloak.js";
+import { moraPrivateSettle } from "./mora-relay.js";
 import type { Store } from "./store/index.js";
 
 const HEX_32 = /^[0-9a-f]{64}$/i;
@@ -222,6 +224,79 @@ export function buildRouter(store: Store) {
       usage: "Input viewing_key_hex at https://explorer.cloak.ag/compliance to decrypt transaction amounts.",
       note: "In production, derive keys deterministically from institution seed.",
     });
+  });
+
+  // ── MORA × Cloak × GrayBox — Private Settlement Relay ────────────────────
+  // Accepts a settled MORA voucher, routes SOL through Cloak shielded pool,
+  // withdraws to recipient's GrayBox stealth address.
+  // On-chain: ZK proof only. Sender, recipient, amount all unlinkable.
+  app.post("/v1/mora-private-settle", async (c) => {
+    const body = await c.req.json().catch(() => null);
+    if (!body) return c.json({ error: "invalid_json" }, 400);
+
+    const { channel_id, seq, prev_hash, recipient_pub_hex, amount_lamports } = body as {
+      channel_id?: string;
+      seq?: number;
+      prev_hash?: string;
+      recipient_pub_hex?: string;
+      amount_lamports?: string;
+    };
+
+    if (!channel_id || seq === undefined || !prev_hash || !recipient_pub_hex || !amount_lamports) {
+      return c.json({
+        error: "missing_fields",
+        required: ["channel_id", "seq", "prev_hash", "recipient_pub_hex", "amount_lamports"],
+      }, 400);
+    }
+
+    const rpcUrl = process.env["SOLANA_RPC_URL"] ?? "https://api.mainnet-beta.solana.com";
+    const keypairEnv = process.env["RELAY_KEYPAIR_JSON"];
+
+    // Devnet demo mode — no live keypair needed
+    if (!keypairEnv) {
+      const stealthBytes = new Uint8Array(32).fill(0xab);
+      return c.json({
+        mode: "demo",
+        voucher_channel_id: channel_id,
+        voucher_seq: seq,
+        amount_lamports,
+        stealth_pubkey_hex: Buffer.from(stealthBytes).toString("hex"),
+        ephemeral_r_hex: Buffer.from(new Uint8Array(32).fill(0xcd)).toString("hex"),
+        deposit_signature: "demo_deposit_sig_" + channel_id,
+        withdraw_signature: "demo_withdraw_sig_" + channel_id,
+        deposit_explorer: "https://explorer.solana.com/tx/demo",
+        withdraw_explorer: "https://explorer.solana.com/tx/demo",
+        cloak_deposit_explorer: "https://explorer.cloak.ag/tx/demo",
+        cloak_withdraw_explorer: "https://explorer.cloak.ag/tx/demo",
+        privacy_stack: ["MORA", "Cloak", "GrayBox"],
+        privacy_note:
+          "MORA: offline payment authorized without internet. " +
+          "Cloak: deposit-withdrawal link broken via Groth16 ZK proof. " +
+          "GrayBox: recipient identity hidden via ECDH stealth address. " +
+          "Set RELAY_KEYPAIR_JSON env var to execute live on-chain.",
+      });
+    }
+
+    // Live mode — relay keypair funded on-chain
+    const relayKeypair = Keypair.fromSecretKey(
+      Uint8Array.from(JSON.parse(keypairEnv)),
+    );
+    const connection = new Connection(rpcUrl, "confirmed");
+
+    const result = await moraPrivateSettle(
+      {
+        channelId: channel_id,
+        seq,
+        prevHash: prev_hash,
+        recipientPubHex: recipient_pub_hex,
+        amountLamports: BigInt(amount_lamports),
+        expiry: Date.now() + 3600_000,
+      },
+      relayKeypair,
+      connection,
+    );
+
+    return c.json(result);
   });
 
   app.get("/v1/treasury/deposits", async (c) => {
