@@ -76,9 +76,22 @@ All four transactions are explorer-verifiable. On-chain: ZK proof only.
 | Cloak deposit (shielded pool) | mainnet | `5prMxzU...` | [Solana](https://explorer.solana.com/tx/5prMxzUjP1CUvBQi9WM7wjGQBKbm19nnn84W3rFyKKKdPGgqaYzWiBTATjZGDCJUymLTsjikBmsBTj8UZHFrrUtq) · [Cloak](https://explorer.cloak.ag/tx/5prMxzUjP1CUvBQi9WM7wjGQBKbm19nnn84W3rFyKKKdPGgqaYzWiBTATjZGDCJUymLTsjikBmsBTj8UZHFrrUtq) |
 | Cloak withdraw → GrayBox stealth | mainnet | `kdPtCCu...` | [Solana](https://explorer.solana.com/tx/kdPtCCumSzEmkNkYi6Jqj9QrkERRjZbm64HRMpCYQsDPNgKey9iMc3wSLTeUdWJhQQV7wbWDxSpoeyh9KQA7h5d) · [Cloak](https://explorer.cloak.ag/tx/kdPtCCumSzEmkNkYi6Jqj9QrkERRjZbm64HRMpCYQsDPNgKey9iMc3wSLTeUdWJhQQV7wbWDxSpoeyh9KQA7h5d) |
 
-GrayBox stealth address (withdrawal destination): `6xg2Xrvk5rJhbu16QEf8XXyraLe3cVtpZAUxdAvJ4UNQ`
+Withdrawal destination: `6xg2Xrvk5rJhbu16QEf8XXyraLe3cVtpZAUxdAvJ4UNQ`
 
-The MORA voucher was signed offline — no internet at payment time. The Cloak deposit-withdrawal link is broken by a Groth16 ZK proof. The withdrawal destination is a one-time GrayBox stealth address unlinked from the sender's real wallet.
+The MORA voucher was signed offline — no internet at payment time. The Cloak deposit-withdrawal link is broken by a Groth16 ZK proof. The withdrawal destination is a one-time address unlinked from the sender's real wallet. In production, this address is derived via GrayBox ECDH (`deriveStealthAddress(spendPub, viewPub)`) so only the recipient's view key can link it back to their identity. In this proof script, a freshly generated keypair is used as the recipient to keep the demonstration self-contained.
+
+**Reproduce this proof:**
+
+```bash
+git clone https://github.com/sirius-labs-dev/graybox-cloak
+cd graybox-cloak
+# Copy mora-cloak-proof.ts from the repo root
+# Install deps: npm install in mora-qvac directory
+# Requires: funded Solana keypair at ~/.config/solana/id.json
+#   - devnet: solana airdrop 1 --url devnet
+#   - mainnet: ~0.05 SOL for Cloak fees
+KEYPAIR_PATH=~/.config/solana/id.json npx tsx mora-cloak-proof.ts
+```
 
 ---
 
