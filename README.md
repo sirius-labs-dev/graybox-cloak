@@ -99,15 +99,26 @@ curl -X POST https://graybox-cloak-production.up.railway.app/v1/receiving-addres
 ```
 
 **`POST /v1/private-release`**  
-Settles an approved deposit via Cloak's shielded pool instead of a transparent on-chain transfer.
+Settles an approved deposit via Cloak's shielded pool instead of a transparent on-chain transfer. Call `/v1/receiving-address` first to create a deposit, then use the returned `deposit_id` here.
+
+```bash
+# Step 1: create deposit
+curl -X POST https://graybox-cloak-production.up.railway.app/v1/receiving-address \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: g-p_demo_h6kj9d8s7g6f5d4" \
+  -d '{"customer_id":"cust_001","amount_hint":"10000000","mint":"So11111111111111111111111111111111111111112","expire_seconds":3600,"refund_addr_hex":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}'
+
+# Step 2: release (use deposit_id from step 1)
+curl -X POST https://graybox-cloak-production.up.railway.app/v1/private-release \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: g-p_demo_h6kj9d8s7g6f5d4" \
+  -d '{"deposit_id":"<deposit_id from step 1>"}'
+```
 
 ```json
-// Request
-{ "deposit_id": "dep_1" }
-
 // Response
 {
-  "deposit_id": "dep_1",
+  "deposit_id": "dep_abc123",
   "state": "released",
   "privacy_layer": "cloak_shielded_pool + graybox_stealth",
   "recipient_cloak_pubkey_hex": "...",
@@ -146,8 +157,8 @@ curl -X POST https://graybox-cloak-production.up.railway.app/v1/mora-private-set
   -d '{
     "channel_id": "mora_ch_001",
     "seq": 3,
-    "prev_hash": "a7f3c2e91b...",
-    "recipient_pub_hex": "bbbbbbbb...",
+    "prev_hash": "a7f3c2e91b4d5f8a9c0b1e2d3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a",
+    "recipient_pub_hex": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     "amount_lamports": "10000000"
   }'
 ```
