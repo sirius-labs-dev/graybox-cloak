@@ -10,10 +10,10 @@
 
 ## The Problem
 
-Every Solana payment leaks two things simultaneously:
+Every Solana payment exposes two things simultaneously:
 
 1. **Who received** — the recipient wallet address is permanently on-chain
-2. **How much** — the settlement amount is readable by anyone with a block explorer
+2. **Which deposit funded which withdrawal** — transaction linkage is traceable by any on-chain observer
 
 Existing solutions address one or the other. No solution on Solana closes both gaps at once.
 
@@ -70,6 +70,33 @@ The deposit transaction shows SOL entering the Cloak shielded pool. The withdraw
 The integration is in `apps/api-gateway/src/cloak.ts`.
 
 ### Endpoints
+
+**`POST /v1/receiving-address`**  
+Generates a one-time GrayBox stealth address for a customer payment. Returns the stealth pubkey the customer sends to.
+
+```bash
+curl -X POST https://graybox-cloak-production.up.railway.app/v1/receiving-address \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: g-p_demo_h6kj9d8s7g6f5d4" \
+  -d '{
+    "customer_id": "cust_001",
+    "amount_hint": "10000000",
+    "mint": "So11111111111111111111111111111111111111112",
+    "expire_seconds": 3600,
+    "refund_addr_hex": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }'
+```
+
+```json
+// Response
+{
+  "deposit_id": "dep_abc123",
+  "stealth_pubkey_hex": "...",
+  "ephemeral_r_hex": "...",
+  "view_tag": 42,
+  "expires_at": 1234567890
+}
+```
 
 **`POST /v1/private-release`**  
 Settles an approved deposit via Cloak's shielded pool instead of a transparent on-chain transfer.
