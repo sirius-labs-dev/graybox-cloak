@@ -21,12 +21,12 @@ Existing solutions address one or the other. No solution on Solana closes both g
 
 ## The Solution
 
-| Layer | Technology | What it hides |
-|-------|-----------|--------------|
-| **GrayBox** | ECDH stealth addresses (Ed25519) | Recipient identity |
+| Layer | Technology | What it eliminates |
+|-------|-----------|-------------------|
+| **GrayBox** | ECDH stealth addresses (Ed25519) | Recipient identity on-chain |
 | **Cloak SDK** | UTXO shielded pool (Groth16 ZK proofs) | Deposit-withdrawal linkage |
-| **MORA** | Offline payment vouchers (114-byte QR chains) | Internet requirement |
-| **Combined** | GrayBox + Cloak + MORA | Identity + linkage + connectivity |
+| **MORA** | Offline payment vouchers (114-byte QR chains) | Internet requirement at payment time |
+| **Combined** | GrayBox + Cloak + MORA | Identity + linkage + connectivity barrier |
 
 A payment settled through this stack leaves only a ZK proof on-chain.  
 No recipient address. No traceable link between deposit and withdrawal. No internet required at payment time.
@@ -227,7 +227,8 @@ Bob scans, goes online later
     │
     │  POST /v1/mora-private-settle
     ▼
-Relay: MORA settle_envelope
+Relay receives voucher metadata
+    │  (MORA on-chain settlement assumed complete)
     │
     ▼
 Cloak transact() → shielded UTXO pool
