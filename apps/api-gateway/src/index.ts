@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { resolve } from "node:path";
 import { buildDemoRouter } from "./routes/demo.js";
 import { buildInternalRouter, buildRouter } from "./routes.js";
@@ -18,6 +19,7 @@ export function buildApp(
   internalSecret = "dev-internal-secret-rotate",
 ) {
   const app = new Hono();
+  app.use("*", cors({ origin: "*", allowMethods: ["GET", "POST", "OPTIONS"], allowHeaders: ["Content-Type", "x-api-key"] }));
   app.get("/", (c) =>
     c.json({ name: "g-pay api-gateway", version: "0.1.0" }),
   );
