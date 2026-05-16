@@ -37,6 +37,14 @@ Privacy here is **load-bearing** — not a feature you add. Remove any layer and
 
 ---
 
+## Live Demo
+
+**Interactive frontend:**
+```
+https://sirius-labs-dev.github.io/graybox-cloak-demo/
+```
+Generate stealth addresses, route payments through Cloak, and generate compliance viewing keys — all connected to the live API.
+
 ## Live Deployment
 
 ```
