@@ -9,7 +9,9 @@
 > Built with [Cloak](https://cloak.ag) — private financial infrastructure on Solana. Cloak SDK: [`@cloak.dev/sdk`](https://docs.cloak.ag) · [Explorer](https://explorer.cloak.ag)
 
 **[→ Cloak Integration Guide](docs/cloak-integration.md)** — SDK path, API path, and full stack examples  
-**[→ Code Examples](examples/)** — runnable TypeScript for each integration layer
+**[→ Code Examples](examples/)** — runnable TypeScript for each integration layer  
+**[→ MORA Protocol](docs/mora-protocol.md)** — on-chain instructions, voucher format, relay integration  
+**[→ GrayBox Protocol](docs/graybox-protocol.md)** — stealth derivation, recipient scanning, claim flow
 
 ---
 
