@@ -8,6 +8,9 @@
 
 > Built with [Cloak](https://cloak.ag) — private financial infrastructure on Solana. Cloak SDK: [`@cloak.dev/sdk`](https://docs.cloak.ag) · [Explorer](https://explorer.cloak.ag)
 
+**[→ Cloak Integration Guide](docs/cloak-integration.md)** — SDK path, API path, and full stack examples  
+**[→ Code Examples](examples/)** — runnable TypeScript for each integration layer
+
 ---
 
 ## The Problem
@@ -403,4 +406,5 @@ All three together: the on-chain record is a ZK proof. No recipient. No linkage.
 ## License
 
 Apache 2.0
+
 
