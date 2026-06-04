@@ -240,7 +240,7 @@ Relay: Cloak transact() → shielded UTXO pool
     │  Deposit-withdrawal link broken
     ▼
 Cloak fullWithdraw() → GrayBox stealth address
-    │  x25519 ECDH one-time address
+    │  Ed25519 ECDH one-time address
     │  Recipient's real wallet never on-chain
     ▼
 On-chain record: ZK proof only
@@ -288,4 +288,5 @@ npx tsx ../../examples/1-cloak-sdk-basic.ts
 
 - [MORA Protocol](mora-protocol.md) — on-chain instructions, voucher format, relay integration
 - [GrayBox Protocol](graybox-protocol.md) — stealth address derivation, recipient scanning, claim flow
+
 
