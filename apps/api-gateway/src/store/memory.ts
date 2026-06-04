@@ -6,6 +6,8 @@ import type {
   Store,
 } from "./types.js";
 
+const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours — expired deposits pruned on access
+
 export class MemoryStore implements Store {
   private institutions = new Map<string, Institution>();
   private deposits = new Map<string, DepositRecord>();
@@ -15,9 +17,12 @@ export class MemoryStore implements Store {
     this.institutions.set(inst.id, inst);
   }
 
-  async findByApiKey(apiKey: string): Promise<Institution | undefined> {
+  async findByApiKey(
+    apiKey: string,
+    compare: (a: string, b: string) => boolean = (a, b) => a === b,
+  ): Promise<Institution | undefined> {
     for (const inst of this.institutions.values()) {
-      if (inst.apiKey === apiKey) return inst;
+      if (compare(inst.apiKey, apiKey)) return inst;
     }
     return undefined;
   }
@@ -27,6 +32,7 @@ export class MemoryStore implements Store {
   }
 
   async createDeposit(record: DepositCreate): Promise<DepositRecord> {
+    this.pruneExpired();
     const id = `dep_${this.nextDepositSeq++}`;
     const full: DepositRecord = {
       ...record,
@@ -91,6 +97,17 @@ export class MemoryStore implements Store {
       .filter((d) => d.institutionId === institutionId)
       .sort((a, b) => b.createdAt - a.createdAt)
       .slice(0, limit);
+  }
+
+  // Remove terminal deposits older than TTL to prevent unbounded memory growth.
+  private pruneExpired(): void {
+    const cutoff = Date.now() - TTL_MS;
+    const terminal: DepositState[] = ["released", "refunded", "expired", "rejected"];
+    for (const [id, d] of this.deposits) {
+      if (terminal.includes(d.state) && d.createdAt < cutoff) {
+        this.deposits.delete(id);
+      }
+    }
   }
 }
 
