@@ -28,7 +28,7 @@ Existing solutions address one or the other. No solution on Solana closes both g
 
 | Layer | Technology | What it eliminates |
 |-------|-----------|-------------------|
-| **GrayBox** | ECDH stealth addresses (x25519) | Recipient identity on-chain |
+| **GrayBox** | ECDH stealth addresses (Ed25519) | Recipient identity on-chain |
 | **Cloak SDK** | UTXO shielded pool (Groth16 ZK proofs) | Deposit-withdrawal linkage |
 | **MORA** | Offline payment vouchers (84-byte QR chains) | Internet requirement at payment time |
 | **Combined** | GrayBox + Cloak + MORA | Identity + linkage + connectivity barrier |
@@ -406,5 +406,6 @@ All three together: the on-chain record is a ZK proof. No recipient. No linkage.
 ## License
 
 Apache 2.0
+
 
 
