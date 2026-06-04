@@ -49,7 +49,11 @@ export type DepositCreate = Omit<
 /** All store implementations (memory, postgres) speak this. */
 export interface Store {
   putInstitution(inst: Institution): Promise<void>;
-  findByApiKey(apiKey: string): Promise<Institution | undefined>;
+  /** compareFn defaults to === but callers should pass timingSafeEqual. */
+  findByApiKey(
+    apiKey: string,
+    compare?: (a: string, b: string) => boolean,
+  ): Promise<Institution | undefined>;
   getInstitution(id: string): Promise<Institution | undefined>;
 
   createDeposit(record: DepositCreate): Promise<DepositRecord>;
