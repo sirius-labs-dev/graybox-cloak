@@ -94,6 +94,39 @@ const addr = deriveStealthAddressDeterministic(spendPub, viewPub, rSeed, 0n);
 
 ---
 
+## Key Generation
+
+GrayBox uses its **own key format** — raw 32-byte scalars reduced mod L.
+These are NOT standard Solana wallet keypairs.
+
+```typescript
+import { ed25519 } from "@noble/curves/ed25519";
+const L = ed25519.CURVE.n;
+
+// Convert 32 raw bytes → scalar (little-endian bigint mod L)
+function bytesToScalar(privBytes: Uint8Array): bigint {
+  let n = 0n;
+  for (let i = privBytes.length - 1; i >= 0; i--) n = (n << 8n) | BigInt(privBytes[i]!);
+  return n % L;
+}
+
+// Generate a fresh GrayBox keypair
+const spendPrivBytes = crypto.getRandomValues(new Uint8Array(32));
+const viewPrivBytes  = crypto.getRandomValues(new Uint8Array(32));
+
+const spendPrivScalar = bytesToScalar(spendPrivBytes);
+const viewPrivScalar  = bytesToScalar(viewPrivBytes);
+
+// Derive public keys (publish these so senders can derive stealth addresses)
+const spendPub = ed25519.ExtendedPoint.BASE.multiply(spendPrivScalar).toRawBytes();
+const viewPub  = ed25519.ExtendedPoint.BASE.multiply(viewPrivScalar).toRawBytes();
+```
+
+Store `spendPrivBytes` and `viewPrivBytes` securely. Register `spendPub`
+and `viewPub` with the API gateway (see [API Gateway](#api-gateway) below).
+
+---
+
 ## Recipient Side — Scanning for Incoming Payments
 
 The recipient watches on-chain transactions and checks each one using
@@ -260,21 +293,141 @@ Test: [`apps/api-gateway/tests/vector.test.ts`](../apps/api-gateway/tests/vector
 
 ## API Gateway
 
-The GrayBox stealth derivation is exposed via the API gateway:
+The API gateway abstracts GrayBox key management and stealth derivation
+behind a REST interface. Institutions register their `spendPub` / `viewPub`
+once; the gateway handles all stealth derivation and scanning server-side.
 
-**`POST /v1/receiving-address`** — derive a one-time stealth address
-for an incoming payment. The institution's registered `spendPub` and
-`viewPub` are used automatically.
+**Base URL:** `https://graybox-cloak-production.up.railway.app`  
+**Auth:** `x-api-key: <your-key>` header on every request  
+**Demo key:** `g-p_demo_h6kj9d8s7g6f5d4` (devnet, read-only demo institution)
+
+### Running locally
+
+```bash
+git clone https://github.com/sirius-labs-dev/graybox-cloak
+cd graybox-cloak/apps/api-gateway
+cp .env.example .env        # fill in your values
+npm install
+npm run dev                 # → http://localhost:3000
+```
+
+See [`apps/api-gateway/.env.example`](../apps/api-gateway/.env.example)
+for all required environment variables.
+
+### Institution setup
+
+An institution has:
+
+| Field | Description |
+|-------|-------------|
+| `id` | Unique identifier (e.g. `"cloak_team"`) |
+| `apiKey` | Secret used in `x-api-key` header |
+| `spendPub` | 32-byte GrayBox spend public key |
+| `viewPub` | 32-byte GrayBox view public key |
+| `releaseAuthority` | Pubkey authorised to trigger on-chain release |
+| `webhookUrl` | Optional — notified on deposit state changes |
+
+In **memory mode** (no `DATABASE_URL`), seed the demo institution via
+`bootstrapInstitutions` in `src/index.ts`. In **postgres mode**, insert
+directly into the `institutions` table.
+
+### Step 1 — Generate a stealth receiving address
 
 ```bash
 curl -X POST https://graybox-cloak-production.up.railway.app/v1/receiving-address \
-  -H "x-api-key: <your-key>" \
+  -H "x-api-key: g-p_demo_h6kj9d8s7g6f5d4" \
   -H "Content-Type: application/json" \
-  -d '{"customer_id":"c1","amount_hint":"10000000","mint":"SOL","expire_seconds":3600,"refund_addr_hex":"aa...aa"}'
+  -d '{
+    "customer_id": "cust_001",
+    "amount_hint": "10000000",
+    "mint": "So11111111111111111111111111111111111111112",
+    "expire_seconds": 3600,
+    "refund_addr_hex": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }'
 ```
 
-Response includes `stealth_pubkey_hex`, `ephemeral_r_hex`, and `view_tag`
-— everything needed for the sender and for recipient scanning.
+```json
+{
+  "deposit_id": "dep_abc123",
+  "stealth_pubkey_hex": "...",
+  "ephemeral_r_hex": "...",
+  "view_tag": 42,
+  "expires_at": 1234567890
+}
+```
+
+Direct the sender to pay `stealth_pubkey_hex`. Publish `ephemeral_r_hex`
+and `view_tag` on-chain alongside the transaction so the recipient can scan.
+
+### Step 2 — Indexer notifies gateway of on-chain match
+
+When your indexer detects SOL arriving at `stealth_pubkey_hex`, call the
+internal endpoint to update deposit state:
+
+```bash
+curl -X POST http://localhost:3000/v1/internal/deposit-detected \
+  -H "x-internal-secret: dev-internal-secret-rotate" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "slice_id": 1,
+    "deposit_pubkey": "<on-chain-address>",
+    "stealth_pubkey": "<stealth_pubkey_hex from step 1>",
+    "amount": 10000000,
+    "state": "approved"
+  }'
+```
+
+### Step 3 — Settle via Cloak → GrayBox
+
+Once approved, trigger private settlement (Cloak shielded pool → stealth
+address):
+
+```bash
+curl -X POST http://localhost:3000/v1/private-release \
+  -H "x-api-key: g-p_demo_h6kj9d8s7g6f5d4" \
+  -H "Content-Type: application/json" \
+  -d '{ "deposit_id": "dep_abc123" }'
+```
+
+### Deposit state machine
+
+```
+pending → approved → released
+       ↘ rejected → refunded
+       ↘ expired  → refunded
+```
+
+| State | Meaning |
+|-------|---------|
+| `pending` | Stealth address generated, waiting for on-chain deposit |
+| `approved` | Indexer confirmed on-chain match, AML cleared |
+| `rejected` | AML rejected — refund available |
+| `released` | Settled via Cloak → stealth address |
+| `expired` | TTL elapsed — refund available |
+| `refunded` | Lamports returned to `refund_addr` |
+
+### Poll payment status
+
+```bash
+curl https://graybox-cloak-production.up.railway.app/v1/payment-status/dep_abc123 \
+  -H "x-api-key: g-p_demo_h6kj9d8s7g6f5d4"
+```
+
+### MORA + Cloak + GrayBox in one call
+
+```bash
+curl -X POST https://graybox-cloak-production.up.railway.app/v1/mora-private-settle \
+  -H "x-api-key: g-p_demo_h6kj9d8s7g6f5d4" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "channel_id": "mora_ch_001",
+    "seq": 1,
+    "prev_hash": "a7f3c2e91b4d5f8a9c0b1e2d3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a",
+    "recipient_pub_hex": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "amount_lamports": "10000000"
+  }'
+```
 
 See [`docs/cloak-integration.md`](cloak-integration.md) for the full
-payment flow including Cloak shielded settlement.
+Cloak SDK walkthrough and payment flow.
+
