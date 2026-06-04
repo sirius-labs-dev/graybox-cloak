@@ -6,6 +6,8 @@
 
 **Colosseum Frontier 2026 · Cloak Track Submission**
 
+> Built with [Cloak](https://cloak.ag) — private financial infrastructure on Solana. Cloak SDK: [`@cloak.dev/sdk`](https://docs.cloak.ag) · [Explorer](https://explorer.cloak.ag)
+
 ---
 
 ## The Problem
@@ -23,9 +25,9 @@ Existing solutions address one or the other. No solution on Solana closes both g
 
 | Layer | Technology | What it eliminates |
 |-------|-----------|-------------------|
-| **GrayBox** | ECDH stealth addresses (Ed25519) | Recipient identity on-chain |
+| **GrayBox** | ECDH stealth addresses (x25519) | Recipient identity on-chain |
 | **Cloak SDK** | UTXO shielded pool (Groth16 ZK proofs) | Deposit-withdrawal linkage |
-| **MORA** | Offline payment vouchers (114-byte QR chains) | Internet requirement at payment time |
+| **MORA** | Offline payment vouchers (84-byte QR chains) | Internet requirement at payment time |
 | **Combined** | GrayBox + Cloak + MORA | Identity + linkage + connectivity barrier |
 
 A payment settled through this stack leaves only a ZK proof on-chain.  
@@ -34,6 +36,16 @@ No recipient address. No traceable link between deposit and withdrawal. No inter
 **What Cloak actually provides:** Funds enter the shielded UTXO pool. A Groth16 proof is generated client-side, proving that inputs equal outputs without revealing which deposit corresponds to which withdrawal. The privacy comes from breaking this linkage — not from making amounts disappear entirely from the chain.
 
 Privacy here is **load-bearing** — not a feature you add. Remove any layer and the privacy guarantee breaks.
+
+---
+
+## On-Chain Programs
+
+| Program | Network | Address |
+|---------|---------|---------|
+| MORA    | devnet  | `9fcXHD3pHDKLX79JuVgCEKQiqYkvVqFtpoAEVjBq4aJ8` |
+| GrayBox | devnet  | `75HuPfb2n7SD7KtcQnVpCW5SVN3RP9gZ9vTXP4D4ha6C` |
+| Cloak   | mainnet | via `@cloak.dev/sdk` relay |
 
 ---
 
@@ -245,7 +257,7 @@ On-chain record: ZK proof only.
 ```
 Alice (offline, no internet)
     │
-    │  Signs 114-byte MORA voucher
+    │  Signs 84-byte MORA voucher
     │  Passes via QR / NFC
     ▼
 Bob scans, goes online later
@@ -291,7 +303,7 @@ Payment flow (GrayBox + Cloak):
 
 Full stack (MORA + Cloak + GrayBox):
 
-  Offline voucher (114-byte, QR)
+  Offline voucher (84-byte, QR)
                         │
                         ▼
               Relay: Cloak transact() + fullWithdraw()
@@ -380,6 +392,15 @@ All three together: the on-chain record is a ZK proof. No recipient. No linkage.
 
 ---
 
+## Status & Audit
+
+> **Devnet prototype.** MORA and GrayBox programs are deployed on Solana devnet and unaudited. Cloak integration targets Solana mainnet via the `@cloak.dev/sdk` relay. Do not use in production without a third-party security review.
+> 
+> Audit in progress: Adevar Labs (see Roadmap).
+
+---
+
 ## License
 
 Apache 2.0
+
