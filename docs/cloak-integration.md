@@ -276,6 +276,64 @@ npx tsx ../../examples/1-cloak-sdk-basic.ts
 
 ---
 
+## Demo Endpoints (`/v1/demo/*`)
+
+The demo router provides a self-contained interactive demo flow that chains
+every layer end-to-end on devnet. These endpoints require the `gpay-cli`
+binary (see `.env.example` for setup).
+
+| Method | Path | What it does |
+|--------|------|-------------|
+| `POST` | `/v1/demo/init` | Create a demo deposit with pre-wired refund address |
+| `POST` | `/v1/demo/simulate-payment` | Simulate on-chain SOL deposit via `gpay-cli` |
+| `POST` | `/v1/demo/attest` | Run AML oracle attestation (clean/dirty verdict) |
+| `POST` | `/v1/demo/release` | Release funds to a fresh treasury keypair |
+| `POST` | `/v1/demo/refund` | Refund SOL back to the refund address |
+
+**Full demo flow:**
+
+```bash
+BASE=https://graybox-cloak-production.up.railway.app
+KEY=g-p_demo_h6kj9d8s7g6f5d4
+
+# 1. Create demo deposit
+DEP=$(curl -s -X POST $BASE/v1/demo/init -H "x-api-key: $KEY" | jq -r .deposit_id)
+
+# 2. Simulate on-chain payment (devnet)
+curl -s -X POST $BASE/v1/demo/simulate-payment \
+  -H "x-api-key: $KEY" -H "Content-Type: application/json" \
+  -d "{\"deposit_id\":\"$DEP\"}" | jq .
+
+# 3. AML attestation
+curl -s -X POST $BASE/v1/demo/attest \
+  -H "x-api-key: $KEY" -H "Content-Type: application/json" \
+  -d "{\"deposit_id\":\"$DEP\",\"verdict\":\"clean\"}" | jq .
+
+# 4. Release to stealth address
+curl -s -X POST $BASE/v1/demo/release \
+  -H "x-api-key: $KEY" -H "Content-Type: application/json" \
+  -d "{\"deposit_id\":\"$DEP\"}" | jq .
+```
+
+---
+
+## Private SOL Send (standalone script)
+
+For a quick private send without the gateway, use `send-sol-private.ts`:
+
+```bash
+cd apps/api-gateway
+
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com \
+KEYPAIR_PATH=~/.config/solana/id.json \
+npx tsx send-sol-private.ts <recipient-pubkey> <amount-lamports>
+```
+
+This deposits SOL into Cloak's shielded pool and withdraws to the
+recipient in a single script. Explorer links are printed on completion.
+
+---
+
 ## Resources
 
 - [Cloak](https://cloak.ag) — private financial infrastructure on Solana
