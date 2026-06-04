@@ -283,3 +283,9 @@ npx tsx ../../examples/1-cloak-sdk-basic.ts
 - [Cloak Explorer](https://explorer.cloak.ag) — verify shielded transactions
 - [GrayBox × Cloak Demo](https://sirius-labs-dev.github.io/graybox-cloak-demo/)
 - [Live API](https://graybox-cloak-production.up.railway.app)
+
+### Protocol deep-dives
+
+- [MORA Protocol](mora-protocol.md) — on-chain instructions, voucher format, relay integration
+- [GrayBox Protocol](graybox-protocol.md) — stealth address derivation, recipient scanning, claim flow
+
