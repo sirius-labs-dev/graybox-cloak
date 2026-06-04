@@ -1,6 +1,6 @@
-# Contributing to g-pay
+# Contributing to GrayBox × Cloak
 
-Thanks for your interest. g-pay is an early-stage research-and-engineering
+Thanks for your interest. GrayBox × Cloak is an early-stage research-and-engineering
 project; PRs and issues are welcome — code, docs, threat-model critiques,
 and small fixes alike.
 
@@ -9,35 +9,27 @@ and small fixes alike.
 - **Do not push real keypairs, mnemonics, API keys, or `.env` files.**
   `.gitignore` covers the obvious files; if you create new secret material
   while developing, add the path before committing.
-- **The Anchor program is not audited.** Do not propose changes that depend
+- **The on-chain programs are not audited.** Do not propose changes that depend
   on assumptions about mainnet hardening that we have not yet earned.
 - Be considerate of compute and rent costs in any program-side change.
 
 ## Local setup
 
 ```sh
-solana --version       # >= 3.1
-anchor --version       # >= 1.0
-rustc --version        # >= 1.95
-node --version         # >= 22
+node --version    # >= 22
 
-# per-deployer keypair (do NOT reuse the demo program ID)
-solana-keygen new --no-bip39-passphrase --silent \
-  --outfile target/deploy/quarantine_vault-keypair.json
-anchor keys sync
-
-# build + test
-./scripts/build-artifacts.sh
-cargo test --workspace
-npm --prefix apps/api-gateway test
+cd apps/api-gateway
+cp .env.example .env   # fill in values
+npm install
+npm run dev            # → http://localhost:3000
+npm test               # 8 passing
 ```
 
-`docs/RUNBOOK.md` has the full local end-to-end demo.
+For end-to-end integration examples, see [`examples/`](examples/) and
+[`docs/cloak-integration.md`](docs/cloak-integration.md).
 
 ## Coding style
 
-- **Rust**: `cargo fmt` before pushing. Prefer functions to macros, explicit
-  error types in libraries.
 - **TypeScript**: 2-space indent, double quotes, strict mode. The
   `tsconfig.json` is the source of truth.
 - **Comments**: only when the *why* is non-obvious. Identifier names should
@@ -45,14 +37,11 @@ npm --prefix apps/api-gateway test
 
 ## Pull request checklist
 
-- [ ] `cargo test --workspace` passes
-- [ ] `npm --prefix apps/api-gateway test` passes
-- [ ] `npm --prefix apps/dashboard run build` passes
-- [ ] If you touched `programs/quarantine-vault/`, the LiteSVM integration
-      tests still cover the new path
-- [ ] If you changed the stealth-core algorithm, the canonical vector test
-      (`crates/stealth-core/tests/vectors.rs`) still passes byte-for-byte and
-      the TS port (`apps/api-gateway/src/stealth.ts`) was updated
+- [ ] `npm --prefix apps/api-gateway test` passes (8 tests)
+- [ ] If you changed the stealth derivation algorithm, the canonical vector test
+      (`apps/api-gateway/tests/vector.test.ts`) still passes byte-for-byte
+- [ ] If you added or changed an API endpoint, update `docs/cloak-integration.md`
+      and `docs/graybox-protocol.md` accordingly
 - [ ] Documentation in `docs/` and `README.md` updated if behavior changed
 
 ## Reporting bugs
@@ -61,7 +50,7 @@ For functional bugs and feature requests, open a GitHub issue with:
 - what you ran
 - what you expected
 - what you got
-- environment (`solana --version`, `anchor --version`, `rustc --version`, `node --version`)
+- environment (`node --version`, `npm --version`)
 
 For security issues, follow [SECURITY.md](./SECURITY.md) — please do not open
 public issues for vulnerabilities.
