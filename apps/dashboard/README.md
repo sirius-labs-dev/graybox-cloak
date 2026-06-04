@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GrayBox × Cloak — Dashboard
 
-## Getting Started
+Institutional dashboard for managing GrayBox stealth address payments.
+Built with Next.js 16, Tailwind CSS, and Solana Wallet Adapter.
 
-First, run the development server:
+**Port:** 3001 (runs alongside the API gateway on 3000)
+
+## What it does
+
+- Connect a Solana wallet (Phantom, Backpack, etc.)
+- Generate one-time stealth receiving addresses via the API gateway
+- Monitor incoming deposit status (pending → approved → released)
+- Trigger private release through Cloak shielded pool
+- Generate compliance viewing keys for audit disclosure
+
+## Run locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd apps/dashboard
+npm install
+npm run dev     # → http://localhost:3001
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The dashboard talks to the API gateway. Start the gateway first:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cd apps/api-gateway
+cp .env.example .env
+npm install && npm run dev   # → http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Stack
 
-## Learn More
+| Layer | Package |
+|-------|---------|
+| Framework | Next.js 16 (App Router) |
+| Styling | Tailwind CSS v4 |
+| Wallet | `@solana/wallet-adapter-react` |
+| RPC | `@solana/web3.js` |
 
-To learn more about Next.js, take a look at the following resources:
+## Status
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Early-stage — core wallet connection and deposit management flows are
+implemented. AML oracle UI and bulk treasury management are in progress.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> **Note:** This dashboard is a devnet prototype. Do not connect a mainnet
+> wallet holding real funds until a security audit is complete.
